@@ -7,13 +7,13 @@ from nltk.corpus import stopwords
 import re
 
 # Directory paths
-train_dir = 'Language-Modeling-And-Classification/data/train' 
-test_dir = 'Language-Modeling-And-Classification/data/test'  
+train_dir = 'data/train' 
+test_dir = 'data/test'  
 
 # Tokenizer for bubble graph
 tokenizer = get_tokenizer('basic_english')
 
-# Irrelevant words to remove from the bubble graph
+# Irrelevant words to remove from the hbar chart
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 
@@ -108,13 +108,17 @@ def traverse_and_tokenize_reviews(data_dir):
                     word_counter.update(filtered_words)
     return word_counter
 
-def plot_bubble_word_count(all_word_counts, num_top_words):
+def plot_Hbar_of_word_count(all_word_counts, num_top_words):
     
     common_words = all_word_counts.most_common(num_top_words)
     
-    # Sort words by frequency in descending order
+    # Extract data for plotting
     words, counts = zip(*common_words)
     words, counts = list(words), list(counts)
+
+    # Sort words and counts in descending order
+    words.reverse()
+    counts.reverse()
         
     # Plotting the horizontal bar chart
     plt.figure(figsize=(15, 10))
@@ -135,25 +139,25 @@ def plot_bubble_word_count(all_word_counts, num_top_words):
 if __name__ == "__main__":
 
 
-    # # Collect ratings from train and test directories
-    # train_ratings = collect_ratings_from_directory(train_dir)
-    # test_ratings = collect_ratings_from_directory(test_dir)
+    # Collect ratings from train and test directories
+    train_ratings = collect_ratings_from_directory(train_dir)
+    test_ratings = collect_ratings_from_directory(test_dir)
 
-    # # Combine train and test ratings
-    # all_ratings = train_ratings + test_ratings
+    # Combine train and test ratings
+    all_ratings = train_ratings + test_ratings
 
-    # plot_histogram_num_reviews_to_rating(all_ratings)
+    plot_histogram_num_reviews_to_rating(all_ratings)
 
 
 
-    # # Collect data from train and test directories
-    # train_data = collect_rating_and_text_lengths(train_dir)
-    # test_data = collect_rating_and_text_lengths(test_dir)
+    # Collect data from train and test directories
+    train_data = collect_rating_and_text_lengths(train_dir)
+    test_data = collect_rating_and_text_lengths(test_dir)
 
-    # # Combine train and test data
-    # all_data = train_data + test_data
+    # Combine train and test data
+    all_data = train_data + test_data
 
-    # plot_scatter_text_len_to_rating(all_data)
+    plot_scatter_text_len_to_rating(all_data)
 
 
 
@@ -164,5 +168,7 @@ if __name__ == "__main__":
     # Combine word counts from train and test directories
     all_word_counts = train_word_counts + test_word_counts
 
-    plot_bubble_word_count(all_word_counts, 50)
+    plot_Hbar_of_word_count(train_word_counts, 50)
+    plot_Hbar_of_word_count(test_word_counts, 50)
+
 
