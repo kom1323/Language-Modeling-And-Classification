@@ -64,7 +64,7 @@ class ImdbDataset(Dataset):
 
 
 # Collate function for DataLoader
-def collate_fn(batch):
+def collate_fn(batch, vocab):
     texts, labels = zip(*batch)
     # Tokenize the texts
     tokenized_texts = [tokenizer(text) for text in texts]
@@ -73,7 +73,6 @@ def collate_fn(batch):
     # Pad the sequences
     padded_texts = [text + ['<pad>'] * (max_length - len(text)) for text in tokenized_texts]
     # Convert tokens to indices using the vocabulary
-    vocab = train_dataset.vocabulary
     indexed_texts = [[vocab[token] if token in vocab else vocab['<unk>'] for token in text] for text in padded_texts]
     # Convert to tensors
     text_tensor = torch.tensor(indexed_texts, dtype=torch.long)
@@ -88,19 +87,19 @@ if __name__ == "__main__":
 
     train_dataset = ImdbDataset(train_dir)
 
-    # print("First 10 items in the vocabulary:")
-    # for word, idx in list(train_dataset.vocabulary.items())[:10]:
-    #     print(f"{word}: {idx}")
+    print("First 10 items in the vocabulary:")
+    for word, idx in list(train_dataset.vocabulary.items())[:10]:
+        print(f"{word}: {idx}")
 
 
-    # # Print the length of the dataset
-    # print(f"Total number of samples in the dataset: {len(train_dataset)}")
+    # Print the length of the dataset
+    print(f"Total number of samples in the dataset: {len(train_dataset)}")
 
-    # # Example of using yield_tokens to print tokens
-    # print("Sample tokens:")
-    # for tokens in train_dataset.yield_tokens():
-    #     print(tokens)
-    #     break 
+    # Example of using yield_tokens to print tokens
+    print("Sample tokens:")
+    for tokens in train_dataset.yield_tokens():
+        print(tokens)
+        break 
 
     batch_size = 16
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
