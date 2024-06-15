@@ -84,14 +84,65 @@ def plot_scatter_text_len_to_rating(data):
     text_lengths = [item[1] for item in data]
 
 
+    # Intervals and their ranges
+    intervals = [
+    (0, 2000),
+    (2000, 4000),
+    (4000, 6000),
+    (6000, 8000),
+    (8000, 10000),
+    (10000, 12000),
+    (12000, 14000)  
+    ]
+
+    # Initialize counters for each interval
+    interval_counts = [0] * len(intervals)
+
+    # Count text lengths in each interval
+    for length in text_lengths:
+        for i, (start, end) in enumerate(intervals):
+            if start <= length < end:
+                interval_counts[i] += 1
+                break  # Exit the inner loop once we've found the correct interval
+
+    # Prepare data for scatter plot
+    interval_names = [f"{start}-{end}" for start, end in intervals]
+    counts = interval_counts
+
     # Plotting the scatter plot
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(14, 8))
+
+    # Subplot for scatter plot of ratings vs. text lengths
+    plt.subplot(1, 2, 1)
     plt.scatter(ratings, text_lengths, alpha=0.5, edgecolors='w', linewidth=0.5)
     plt.xlabel('Rating')
     plt.ylabel('Text Length')
     plt.title('Scatter Plot of Review Ratings vs. Text Lengths')
     plt.grid(True)
+
+    # Subplot for scatter plot of text length intervals vs. counts
+    plt.subplot(1, 2, 2)
+    plt.scatter(interval_names, counts, s=100, c='blue', alpha=0.75)
+    for i, count in enumerate(counts):
+        plt.text(interval_names[i], count + 0.1, str(count), ha='center', va='bottom')
+    plt.xlabel('Text Length Intervals')
+    plt.ylabel('Number of Text Lengths')
+    plt.title('Distribution of Text Lengths')
+    plt.grid(True)
+
+    plt.tight_layout()
     plt.show()
+
+
+
+    # # Plotting the scatter plot
+    # plt.figure(figsize=(10, 6))
+    # plt.scatter(ratings, text_lengths, alpha=0.5, edgecolors='w', linewidth=0.5)
+    # plt.xlabel('Rating')
+    # plt.ylabel('Text Length')
+    # plt.title('Scatter Plot of Review Ratings vs. Text Lengths')
+    # plt.grid(True)
+    # plt.show()
 
 def traverse_and_tokenize_reviews(data_dir):
     word_counter = Counter()
