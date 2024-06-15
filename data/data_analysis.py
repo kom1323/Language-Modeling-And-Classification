@@ -168,6 +168,7 @@ if __name__ == "__main__":
     # Combine word counts from train and test directories
     all_word_counts = train_word_counts + test_word_counts
 
+
     plot_Hbar_of_word_count(train_word_counts, 50)
     plot_Hbar_of_word_count(test_word_counts, 50)
 
