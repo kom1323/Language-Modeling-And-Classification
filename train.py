@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 
 def train_model(model, criterion, optimizer, train_loader, vocab_size,epochs, device):
     
+    window_size = 50
     for epoch in range(epochs):
         model.train()
         total_loss = 0.0
@@ -14,8 +15,12 @@ def train_model(model, criterion, optimizer, train_loader, vocab_size,epochs, de
             inputs = inputs.to(device)  # Move inputs to GPU
             targets = targets.to(device)  # Move targets to GPU
             
+            batch_size, seq_len = inputs.size()
+            in_sample_loss = 0.0
             ## PROBLEM WITH THE SOFTMAX OUTPUT TO TOKEN!
-            for i in range(1, inputs.size(1)):
+            for i in range(1, seq_len):
+
+                model.zero_grad()
                 input_t = inputs[:, :i]  # Slice to include tokens up to index i
                 target_t = inputs[:, i]    # Target is the token at index i
 
@@ -24,7 +29,7 @@ def train_model(model, criterion, optimizer, train_loader, vocab_size,epochs, de
 
                 output_t = outputs[:, -1, :] 
 
-                print(f"Batch {batch_idx}: Inputs shape {input_t.shape}, Targets shape {target_t.shape}, Output shape {output_t.shape}")
+                #print(f"Batch {batch_idx}: Inputs shape {input_t.shape}, Targets shape {target_t.shape}, Output shape {output_t.shape}")
 
 
                 # Flatten outputs and targets for loss calculation
@@ -40,9 +45,13 @@ def train_model(model, criterion, optimizer, train_loader, vocab_size,epochs, de
                 loss.backward()
                 optimizer.step()
 
+                in_sample_loss += loss.item()
                 total_loss += loss.item()
+                if i % 20 == 19:
+                    print(f'Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}]: Input length: {input_t.shape[1]}, Sample loss: {in_sample_loss / 20:.4f}')
+                    in_sample_loss = 0.0
             
-            total_loss += loss.item()
+            
             if batch_idx % 100 == 99:    # Print every 100 batches
                 print(f'Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {total_loss / 100:.4f}')
                 total_loss = 0.0
@@ -56,9 +65,10 @@ if __name__ == "__main__":
 
     train_dir = 'data/train' 
 
+    print("Loading dataset...")
     train_dataset = ImdbDataset(train_dir)
     
-    batch_size = 8
+    batch_size = 32
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, train_dataset.vocabulary))
 
 
@@ -79,4 +89,5 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
+    print("Starting training loop...")
     train_model(model, criterion, optimizer, train_dataloader, vocab_size, epochs, device)
