@@ -7,7 +7,6 @@ from collections import Counter
 
 
 ## ADD COLLATE FUNCTION
-
 tokenizer = get_tokenizer('basic_english')
 
 class ImdbDataset(Dataset):
@@ -15,8 +14,9 @@ class ImdbDataset(Dataset):
         super(ImdbDataset, self).__init__()
         self.data_dir = data_dir
         self.transform = transform
-        self. samples = []
+        self.samples = []
         self.vocabulary = None
+        self.tokenizer = get_tokenizer('basic_english')
         self._load_data()
         self._create_vocabulary()
 
@@ -24,7 +24,7 @@ class ImdbDataset(Dataset):
         # Remove <br> tags
         text = re.sub(r'<br\s*/?>', ' ', text)
         # Remove punctuation and non-alphanumeric characters
-        text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+        #text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
         return text
 
 
@@ -41,10 +41,11 @@ class ImdbDataset(Dataset):
     def _create_vocabulary(self):
             word_counter = Counter()
             for text, _ in self.samples:
-                words = tokenizer(text)
+                words = self.tokenizer(text)
                 word_counter.update(words)
             self.vocabulary = {word: idx for idx, (word, _) in enumerate(word_counter.items())}
             self.vocabulary['<unk>'] = len(self.vocabulary) 
+            self.vocabulary['<pad>'] = len(self.vocabulary)
 
     def __len__(self):
         return len(self.samples)
@@ -52,31 +53,30 @@ class ImdbDataset(Dataset):
 
     def __getitem__(self, index):
         text, label = self.samples[index]
-        if self.transform:
-            text = self.transform(text)
-        return text, label
+        # Convert text to sequence of word indices using vocab
+        indexed_text = [self.vocabulary[word] if word in self.vocabulary else self.vocabulary['<unk>'] for word in self.tokenizer(text)]
+        
+        
+        return indexed_text, label
 
 
-    def yield_tokens(data_iter):
-        for text, _ in data_iter:
-            yield tokenizer(text)
+
 
 
 
 # Collate function for DataLoader
 def collate_fn(batch, vocab):
     texts, labels = zip(*batch)
-    # Tokenize the texts
-    tokenized_texts = [tokenizer(text) for text in texts]
-    # Find the maximum length in the batch
-    max_length = max(len(text) for text in tokenized_texts)
-    # Pad the sequences
-    padded_texts = [text + ['<pad>'] * (max_length - len(text)) for text in tokenized_texts]
-    # Convert tokens to indices using the vocabulary
-    indexed_texts = [[vocab[token] if token in vocab else vocab['<unk>'] for token in text] for text in padded_texts]
+    
+    
+    # Pad sequences to the same length within the batch
+    max_length = max(len(text) for text in texts)
+    padded_texts = [text + [vocab['<pad>']] * (max_length - len(text)) for text in texts]
+    
     # Convert to tensors
-    text_tensor = torch.tensor(indexed_texts, dtype=torch.long)
+    text_tensor = torch.tensor(padded_texts, dtype=torch.long)
     label_tensor = torch.tensor(labels, dtype=torch.long)
+    
     return text_tensor, label_tensor
 
 
@@ -90,6 +90,7 @@ if __name__ == "__main__":
     print("First 10 items in the vocabulary:")
     for word, idx in list(train_dataset.vocabulary.items())[:10]:
         print(f"{word}: {idx}")
+    
 
 
     # Print the length of the dataset

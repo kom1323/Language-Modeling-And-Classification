@@ -135,15 +135,6 @@ def plot_scatter_text_len_to_rating(data):
 
 
 
-    # # Plotting the scatter plot
-    # plt.figure(figsize=(10, 6))
-    # plt.scatter(ratings, text_lengths, alpha=0.5, edgecolors='w', linewidth=0.5)
-    # plt.xlabel('Rating')
-    # plt.ylabel('Text Length')
-    # plt.title('Scatter Plot of Review Ratings vs. Text Lengths')
-    # plt.grid(True)
-    # plt.show()
-
 def traverse_and_tokenize_reviews(data_dir):
     word_counter = Counter()
     for label in ['pos', 'neg']:
