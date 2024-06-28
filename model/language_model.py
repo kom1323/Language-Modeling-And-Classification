@@ -17,6 +17,7 @@ class GRULanguageModel(nn.Module):
     def forward(self, x, hidden=None):
         if hidden is None:
             hidden = [torch.zeros(x.size(0), self.hidden_dim).to(x.device) for _ in range(self.num_layers)]
+
         
         embedded = self.embedding(x)
         output_sequence = []

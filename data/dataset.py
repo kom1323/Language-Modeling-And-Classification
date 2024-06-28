@@ -39,13 +39,25 @@ class ImdbDataset(Dataset):
 
 
     def _create_vocabulary(self):
-            word_counter = Counter()
-            for text, _ in self.samples:
-                words = self.tokenizer(text)
-                word_counter.update(words)
-            self.vocabulary = {word: idx for idx, (word, _) in enumerate(word_counter.items())}
-            self.vocabulary['<unk>'] = len(self.vocabulary) 
-            self.vocabulary['<pad>'] = len(self.vocabulary)
+        word_counter = Counter()
+        for text, _ in self.samples:
+            words = self.tokenizer(text)
+            word_counter.update(words)
+        
+        total_count = sum(word_counter.values())
+        cumulative_count = 0
+        threshold = total_count * 1
+        
+        most_frequent_words = []
+        for word, count in word_counter.most_common():
+            cumulative_count += count
+            most_frequent_words.append(word)
+            if cumulative_count >= threshold:
+                break
+        
+        self.vocabulary = {word: idx for idx, word in enumerate(most_frequent_words)}
+        self.vocabulary['<unk>'] = len(self.vocabulary)
+        self.vocabulary['<pad>'] = len(self.vocabulary) + 1
 
     def __len__(self):
         return len(self.samples)
