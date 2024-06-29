@@ -4,59 +4,60 @@ import torch.optim as optim
 from model.language_model import GRULanguageModel 
 from data.dataset import ImdbDataset, collate_fn
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter 
+import math
+import os
+writer = SummaryWriter('logs')
 
-def train_model(model, criterion, optimizer, train_loader, pad_token_id, epochs, device):
+def train_model(model, criterion, optimizer, train_dataloader, num_epochs, device):
     
     model.train()
-    window_size = 20
-    for epoch in range(epochs):
-        for batch_idx, (inputs, targets) in enumerate(train_loader):
-            inputs = inputs.to(device)  # Move inputs to GPU
-            # targets = targets.to(device)  # Move targets to GPU
-            _, seq_len = inputs.size()
+    for epoch in range(num_epochs):
+        epoch_loss = 0.0
+        total_examples = 0
+        ## TURN IT INTO TWO LOOPS LIKE IN THE START SO IT WILL USE THE SAME MEMORY EACH ITERATION
+        for iteration, (inputs, targets) in enumerate(train_dataloader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            optimizer.zero_grad()
             
-            total_loss = 0.0
+            # Forward pass
+            outputs, _ = model(inputs)
+                        
+            # Compute loss
+            loss = criterion(outputs, targets)
             
+            # Backward pass and optimization
+            loss.backward()
+            optimizer.step()
+            
+            epoch_loss += loss.item()
+            
+            
+            total_examples += targets.size(0)  # Accumulate total examples processed
+            
+            # Compute perplexity
+            perplexity = math.exp(loss.item())
+            
+            # Write to TensorBoard
+            writer.add_scalar('Loss/train', loss.item(), epoch * len(train_dataloader) + iteration)
+            writer.add_scalar('Perplexity/train', perplexity, epoch * len(train_dataloader) + iteration)
 
-            for i in range(1, seq_len):
-                hidden = None
-                #print(f"Input: {i}/{seq_len}")
-                optimizer.zero_grad()
+            print(f"#iteration: {iteration}/{len(train_dataloader)}, Loss:{loss.item():.4f}, Perplexity: {perplexity:.4f}")
+        
+        avg_epoch_loss = epoch_loss / len(train_dataloader)
+        avg_epoch_perplexity = math.exp(avg_epoch_loss)
+        print(f'Epoch {epoch+1}/{num_epochs}, Loss: {avg_epoch_loss:.4f}, Avg Perplexity: {avg_epoch_perplexity:.4f}')
+        
+        # Log epoch loss and perplexity
+        writer.add_scalar('Train/Avg_Loss', avg_epoch_loss, epoch)
+        writer.add_scalar('Train/Avg_Perplexity', avg_epoch_perplexity, epoch)
 
-                  # Determine the input sequence
-                if i < window_size:
-                    input_t = inputs[:, :i]  # Include tokens up to index i
-                else:
-                    input_t = inputs[:, i - window_size + 1:i]  # Include last window_size tokens
-                
-                target_t = inputs[:, i]   # Target is the token at index i
-                
-
-                # Create a mask to ignore padding tokens
-                #target_mask = target_t != pad_token_id
-
-                # Forward pass
-                outputs, hidden = model(input_t, hidden)
-                output_t = outputs[:, -1, :]
-
-                # Compute loss for the predicted next token, ignoring padding tokens
-                loss = criterion(output_t, target_t)
-
-                # Backward pass and optimization step
-                loss.backward()
-                optimizer.step()
-
-
-                total_loss += loss.item()
-                #in_sample_loss += loss.item()
-                # if i % 20 == 19:
-                #     print(f'Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}]: Input length: {i}/{seq_len}, Sample loss: {in_sample_loss / 20:.4f}')
-                #     in_sample_loss = 0.0
-                    
-            print(f'Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {total_loss:.4f}')
-
+    print("Training complete.")
+    print("Saving model...")
     torch.save(model.state_dict(), 'gru_language_model.pth')
+    print("Model saved.")
 
+    
 
 
 
@@ -76,8 +77,8 @@ if __name__ == "__main__":
     embedding_dim = 100
     hidden_dim = 256
     num_layers = 2
-    lr = 0.001
-    epochs = 1
+    lr = 0.01
+    epochs = 15
 
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -92,4 +93,4 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     print("Starting training loop...")
-    train_model(model, criterion, optimizer, train_dataloader, train_dataset.vocabulary['<pad>'], epochs, device)
+    train_model(model, criterion, optimizer, train_dataloader, epochs, device)

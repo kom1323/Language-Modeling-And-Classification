@@ -3,9 +3,9 @@ import torch.nn as nn
 
 
 
-class GRUCell(nn.Module):
+class CustomGRUCell(nn.Module):
     def __init__(self, input_dim, hidden_dim) -> None:
-        super(GRUCell, self).__init__()
+        super(CustomGRUCell, self).__init__()
         self.hidden_dim = hidden_dim
         self.W_z = nn.Linear(input_dim + hidden_dim, hidden_dim)
         self.W_r = nn.Linear(input_dim + hidden_dim, hidden_dim)

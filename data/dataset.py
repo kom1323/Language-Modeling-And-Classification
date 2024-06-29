@@ -46,7 +46,7 @@ class ImdbDataset(Dataset):
         
         total_count = sum(word_counter.values())
         cumulative_count = 0
-        threshold = total_count * 1
+        threshold = total_count * 0.95
         
         most_frequent_words = []
         for word, count in word_counter.most_common():
@@ -57,39 +57,53 @@ class ImdbDataset(Dataset):
         
         self.vocabulary = {word: idx for idx, word in enumerate(most_frequent_words)}
         self.vocabulary['<unk>'] = len(self.vocabulary)
-        self.vocabulary['<pad>'] = len(self.vocabulary) + 1
+        self.vocabulary['<pad>'] = len(self.vocabulary)
 
     def __len__(self):
         return len(self.samples)
     
 
     def __getitem__(self, index):
-        text, label = self.samples[index]
+        text, _ = self.samples[index]
         # Convert text to sequence of word indices using vocab
         indexed_text = [self.vocabulary[word] if word in self.vocabulary else self.vocabulary['<unk>'] for word in self.tokenizer(text)]
-        
-        
-        return indexed_text, label
 
+        input_target_pairs = []
+        sequence_length = 20
 
+        for i in range(len(indexed_text) - 1):
+            # Ensure each input sequence is exactly 20 tokens long
+            if i < sequence_length - 1:
+                # If the sequence is shorter than 20 tokens, pad the start with <pad>
+                input_seq = [self.vocabulary['<pad>']] * (sequence_length - 1 - i) + indexed_text[:i + 1]
+            else:
+                input_seq = indexed_text[i - (sequence_length - 1):i + 1]
+            
+            target = indexed_text[i + 1]
+            target_one_hot = torch.zeros(len(self.vocabulary))
+            target_one_hot[target] = 1
+            target_one_hot = target_one_hot.long()
+            input_target_pairs.append((input_seq, target_one_hot))
 
-
-
+        return input_target_pairs
 
 # Collate function for DataLoader
 def collate_fn(batch, vocab):
-    texts, labels = zip(*batch)
-    
-    
+    input_sequences, targets = [], []
+    for input_target_pairs in batch:
+        for input_seq, target in input_target_pairs:
+            input_sequences.append(input_seq)
+            targets.append(target)
+
     # Pad sequences to the same length within the batch
-    max_length = max(len(text) for text in texts)
-    padded_texts = [text + [vocab['<pad>']] * (max_length - len(text)) for text in texts]
-    
+    max_length = max(len(seq) for seq in input_sequences)
+    padded_inputs = [seq + [vocab['<pad>']] * (max_length - len(seq)) for seq in input_sequences]
+
     # Convert to tensors
-    text_tensor = torch.tensor(padded_texts, dtype=torch.long)
-    label_tensor = torch.tensor(labels, dtype=torch.long)
+    input_tensor = torch.tensor(padded_inputs, dtype=torch.long)
+    target_tensor = torch.stack(targets)
     
-    return text_tensor, label_tensor
+    return input_tensor, target_tensor
 
 
 
@@ -114,7 +128,7 @@ if __name__ == "__main__":
         print(tokens)
         break 
 
-    batch_size = 16
+    batch_size = 1
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
 
 

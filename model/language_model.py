@@ -1,5 +1,5 @@
 import torch.nn as nn
-from model.gru_cell import GRUCell
+from model.gru_cell import CustomGRUCell
 import torch
 
 
@@ -10,7 +10,7 @@ class GRULanguageModel(nn.Module):
         self.num_layers = num_layers
         self.hidden_dim = hidden_dim
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.gru_cells = nn.ModuleList([GRUCell(embedding_dim, hidden_dim) if i == 0 else GRUCell(hidden_dim, hidden_dim) for i in range(num_layers)])
+        self.gru_cells = nn.ModuleList([CustomGRUCell(embedding_dim, hidden_dim) if i == 0 else CustomGRUCell(hidden_dim, hidden_dim) for i in range(num_layers)])
         self.fc = nn.Linear(hidden_dim, vocab_size)
 
 
