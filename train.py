@@ -12,9 +12,12 @@ writer = SummaryWriter('logs')
 def train_model(model, criterion, optimizer, train_dataloader, num_epochs, device):
     
     model.train()
+    best_loss = float('inf')
+    patience = 0
+    patience_threshold = 100
     for epoch in range(num_epochs):
         epoch_loss = 0.0
-        total_examples = 0
+
         ## TURN IT INTO TWO LOOPS LIKE IN THE START SO IT WILL USE THE SAME MEMORY EACH ITERATION
         for iteration, (inputs, targets) in enumerate(train_dataloader):
             inputs, targets = inputs.to(device), targets.to(device)
@@ -33,7 +36,7 @@ def train_model(model, criterion, optimizer, train_dataloader, num_epochs, devic
             epoch_loss += loss.item()
             
             
-            total_examples += targets.size(0)  # Accumulate total examples processed
+            
             
             # Compute perplexity
             perplexity = math.exp(loss.item())
@@ -43,7 +46,24 @@ def train_model(model, criterion, optimizer, train_dataloader, num_epochs, devic
             writer.add_scalar('Perplexity/train', perplexity, epoch * len(train_dataloader) + iteration)
 
             print(f"#iteration: {iteration}/{len(train_dataloader)}, Loss:{loss.item():.4f}, Perplexity: {perplexity:.4f}")
-        
+            
+            # Check early stopping condition
+            if loss.item() < best_loss:
+                best_loss = loss.item()
+                patience = 0
+                
+            else:
+                patience += 1
+                print(f"Patience: {patience}/{patience_threshold}")
+                if patience >= patience_threshold:
+                    print("Early stopping triggered. Training stopped.")
+                    print("Saving model...")
+                    torch.save(model.state_dict(), 'gru_language_model.pth')
+                    print("Model saved.")
+                    return
+
+
+
         avg_epoch_loss = epoch_loss / len(train_dataloader)
         avg_epoch_perplexity = math.exp(avg_epoch_loss)
         print(f'Epoch {epoch+1}/{num_epochs}, Loss: {avg_epoch_loss:.4f}, Avg Perplexity: {avg_epoch_perplexity:.4f}')

@@ -10,15 +10,17 @@ from collections import Counter
 tokenizer = get_tokenizer('basic_english')
 
 class ImdbDataset(Dataset):
-    def __init__(self, data_dir, transform=None) -> None:
+    def __init__(self, data_dir, transform=None, vocabulary=None, reverse_vocabulary=None) -> None:
         super(ImdbDataset, self).__init__()
         self.data_dir = data_dir
         self.transform = transform
         self.samples = []
-        self.vocabulary = None
+        self.vocabulary = vocabulary
+        self.reverse_vocabulary = reverse_vocabulary
         self.tokenizer = get_tokenizer('basic_english')
         self._load_data()
-        self._create_vocabulary()
+        if vocabulary is None:
+            self._create_vocabulary()
 
     def _clean_text(self, text):
         # Remove <br> tags
@@ -58,6 +60,7 @@ class ImdbDataset(Dataset):
         self.vocabulary = {word: idx for idx, word in enumerate(most_frequent_words)}
         self.vocabulary['<unk>'] = len(self.vocabulary)
         self.vocabulary['<pad>'] = len(self.vocabulary)
+        self.reverse_vocabulary = {idx: word for word, idx in self.vocabulary.items()}
 
     def __len__(self):
         return len(self.samples)
