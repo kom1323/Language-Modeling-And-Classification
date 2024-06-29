@@ -12,13 +12,9 @@ writer = SummaryWriter('logs')
 def train_model(model, criterion, optimizer, train_dataloader, num_epochs, device):
     
     model.train()
-    best_loss = float('inf')
-    patience = 0
-    patience_threshold = 100
     for epoch in range(num_epochs):
         epoch_loss = 0.0
 
-        ## TURN IT INTO TWO LOOPS LIKE IN THE START SO IT WILL USE THE SAME MEMORY EACH ITERATION
         for iteration, (inputs, targets) in enumerate(train_dataloader):
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
@@ -35,9 +31,6 @@ def train_model(model, criterion, optimizer, train_dataloader, num_epochs, devic
             
             epoch_loss += loss.item()
             
-            
-            
-            
             # Compute perplexity
             perplexity = math.exp(loss.item())
             
@@ -47,22 +40,10 @@ def train_model(model, criterion, optimizer, train_dataloader, num_epochs, devic
 
             print(f"#iteration: {iteration}/{len(train_dataloader)}, Loss:{loss.item():.4f}, Perplexity: {perplexity:.4f}")
             
-            # Check early stopping condition
-            if loss.item() < best_loss:
-                best_loss = loss.item()
-                patience = 0
-                
-            else:
-                patience += 1
-                print(f"Patience: {patience}/{patience_threshold}")
-                if patience >= patience_threshold:
-                    print("Early stopping triggered. Training stopped.")
-                    print("Saving model...")
-                    torch.save(model.state_dict(), 'gru_language_model.pth')
-                    print("Model saved.")
-                    return
-
-
+            if iteration % 500 == 0:
+                print("Saving model...")
+                torch.save(model.state_dict(), f'gru_language_model_{iteration}.pth')
+                print("Model saved.")
 
         avg_epoch_loss = epoch_loss / len(train_dataloader)
         avg_epoch_perplexity = math.exp(avg_epoch_loss)
@@ -98,7 +79,7 @@ if __name__ == "__main__":
     hidden_dim = 256
     num_layers = 2
     lr = 0.01
-    epochs = 15
+    epochs = 1
 
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'

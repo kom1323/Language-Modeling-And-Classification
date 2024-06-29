@@ -4,7 +4,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchtext.data.utils import get_tokenizer
 from collections import Counter
-
+import torchtext 
+torchtext.disable_torchtext_deprecation_warning()
 
 ## ADD COLLATE FUNCTION
 tokenizer = get_tokenizer('basic_english')
@@ -48,7 +49,7 @@ class ImdbDataset(Dataset):
         
         total_count = sum(word_counter.values())
         cumulative_count = 0
-        threshold = total_count * 0.95
+        threshold = total_count * 0.97
         
         most_frequent_words = []
         for word, count in word_counter.most_common():
@@ -108,36 +109,3 @@ def collate_fn(batch, vocab):
     
     return input_tensor, target_tensor
 
-
-
-if __name__ == "__main__":
-
-    train_dir = 'data/train' 
-
-    train_dataset = ImdbDataset(train_dir)
-
-    print("First 10 items in the vocabulary:")
-    for word, idx in list(train_dataset.vocabulary.items())[:10]:
-        print(f"{word}: {idx}")
-    
-
-
-    # Print the length of the dataset
-    print(f"Total number of samples in the dataset: {len(train_dataset)}")
-
-    # Example of using yield_tokens to print tokens
-    print("Sample tokens:")
-    for tokens in train_dataset.yield_tokens():
-        print(tokens)
-        break 
-
-    batch_size = 1
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
-
-
-    # Example: Iterating through the DataLoader
-    for batch in train_dataloader:
-        texts, labels = batch
-        print("Texts batch shape:", texts.shape)
-        print("Labels batch shape:", labels.shape)
-        break  # Just to show the first batch
