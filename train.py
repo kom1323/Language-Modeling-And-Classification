@@ -4,6 +4,8 @@ import torch.optim as optim
 from model.language_model import GRULanguageModel 
 from data.dataset import ImdbDataset, collate_fn
 from torch.utils.data import DataLoader
+from evaluate import load_model
+from model.classification_model import SentimentClassifier
 from torch.utils.tensorboard import SummaryWriter 
 import math
 import os
@@ -58,7 +60,32 @@ def train_model(model, criterion, optimizer, train_dataloader, num_epochs, devic
     torch.save(model.state_dict(), 'gru_language_model.pth')
     print("Model saved.")
 
+
+
+def classification_train_model(model, criterion, optimizer, dataloader, num_epochs, device, lr=0.001):
     
+    for epoch in range(num_epochs):
+        model.train()
+        epoch_loss = 0.0
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(device), labels.to(device).float()
+            
+            # Forward pass
+            outputs = model(inputs)
+            loss = criterion(outputs.squeeze(), labels)
+            
+            # Backward pass and optimization
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            epoch_loss += loss.item()
+        
+        avg_loss = epoch_loss / len(dataloader)
+        print(f'Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}')
+    
+    print("Training complete.")
+    return model
 
 
 
@@ -87,11 +114,24 @@ if __name__ == "__main__":
     print("Vocabulary size: ", vocab_size)
 
     
-    # Initialize model, loss function, and optimizer
-    model = GRULanguageModel(vocab_size, embedding_dim, hidden_dim, num_layers)
-    model = model.to(device) 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    # # Initialize model, loss function, and optimizer
+    # model = GRULanguageModel(vocab_size, embedding_dim, hidden_dim, num_layers)
+    # model = model.to(device) 
+    # criterion = nn.CrossEntropyLoss()
+    # optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    print("Starting training loop...")
-    train_model(model, criterion, optimizer, train_dataloader, epochs, device)
+    # print("Starting training loop...")
+    # train_model(model, criterion, optimizer, train_dataloader, epochs, device)
+
+    print("Loading and testing the model...")
+    pretrained_model = load_model('experiments/gru_language_model_3500.pth', vocab_size, embedding_dim, hidden_dim, num_layers, device)
+
+    sentiment_classifier = SentimentClassifier(pretrained_model, hidden_dim)
+    sentiment_classifier.to(device)
+    
+    criterion = nn.BCELoss()
+    optimizer = torch.optim.Adam(sentiment_classifier.parameters(), lr=lr)  
+    num_epochs = 10
+
+    print("Training classification model.")
+    trained_model = classification_train_model(sentiment_classifier, criterion, optimizer, train_dataloader, num_epochs, device)
